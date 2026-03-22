@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>EduPath Admin</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --bg:#04080f;--bg2:#070d18;--surf:#0a1628;--surf2:#0d1e35;
+    --accent:#00d4ff;--accent2:#0099bb;--txt:#e8f4fd;--muted:#8aa8c8;
+    --muted2:#5a7a9a;--bdr:#1a3050;--bdr2:#243d5a;
+    --green:#16c784;--red:#ff4757;--gold:#ffd700;
+    --font:'Segoe UI',system-ui,sans-serif;
+  }
+  body{background:var(--bg);color:var(--txt);font-family:var(--font);min-height:100vh;}
+
+  /* ── Login Screen ── */
+  .login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+    background:radial-gradient(ellipse at 50% 0%,#001830 0%,var(--bg) 70%);}
+  .login-box{background:var(--surf);border:1.5px solid var(--bdr2);border-radius:24px;padding:44px 36px;
+    width:100%;max-width:380px;text-align:center;}
+  .login-logo{font-size:32px;font-weight:900;margin-bottom:4px;letter-spacing:-1px;}
+  .login-logo em{color:var(--accent);font-style:normal;}
+  .login-badge{display:inline-block;background:rgba(0,212,255,.1);color:var(--accent);
+    border:1px solid var(--accent);border-radius:20px;padding:3px 12px;font-size:11px;
+    font-weight:700;letter-spacing:.08em;margin-bottom:28px;}
+  .login-icon{font-size:52px;margin-bottom:16px;display:block;}
+  .login-title{font-size:22px;font-weight:800;margin-bottom:6px;}
+  .login-sub{font-size:13px;color:var(--muted2);margin-bottom:28px;line-height:1.6;}
+  .input{width:100%;background:var(--bg2);border:1.5px solid var(--bdr2);border-radius:12px;
+    color:var(--txt);padding:13px 16px;font-size:15px;outline:none;font-family:var(--font);
+    transition:border-color .15s;}
+  .input:focus{border-color:var(--accent);}
+  .btn{padding:13px 20px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;
+    border:none;font-family:var(--font);transition:all .15s;}
+  .btn-accent{background:var(--accent);color:#000;}
+  .btn-accent:hover{background:var(--accent2);}
+  .btn-ghost{background:transparent;color:var(--muted);border:1.5px solid var(--bdr2);}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-red{background:rgba(255,71,87,.12);color:var(--red);border:1.5px solid var(--red);}
+  .err{background:rgba(255,71,87,.1);color:var(--red);border:1px solid rgba(255,71,87,.3);
+    border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:none;}
+
+  /* ── Admin App ── */
+  .admin-app{display:none;min-height:100vh;}
+  .topbar{background:var(--surf);border-bottom:1px solid var(--bdr);padding:0 20px;
+    height:56px;display:flex;align-items:center;justify-content:space-between;
+    position:sticky;top:0;z-index:100;}
+  .topbar-logo{font-size:18px;font-weight:900;letter-spacing:-0.5px;}
+  .topbar-logo em{color:var(--accent);font-style:normal;}
+  .topbar-badge{background:rgba(255,71,87,.15);color:var(--red);border-radius:6px;
+    padding:2px 8px;font-size:10px;font-weight:800;letter-spacing:.08em;margin-left:8px;}
+  .topbar-right{display:flex;align-items:center;gap:10px;}
+  .topbar-time{font-size:12px;color:var(--muted2);}
+
+  /* ── Sidebar ── */
+  .layout{display:flex;min-height:calc(100vh - 56px);}
+  .sidebar{width:200px;background:var(--bg2);border-right:1px solid var(--bdr);
+    padding:16px 0;flex-shrink:0;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:11px 18px;font-size:13px;
+    font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;border-left:3px solid transparent;}
+  .nav-item:hover{color:var(--txt);background:var(--surf);}
+  .nav-item.on{color:var(--accent);background:rgba(0,212,255,.06);border-left-color:var(--accent);}
+  .nav-icon{font-size:16px;width:20px;text-align:center;}
+  .main{flex:1;padding:24px;overflow-x:hidden;}
+
+  /* ── Stats ── */
+  .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+  @media(max-width:700px){.stats-grid{grid-template-columns:repeat(2,1fr);}.sidebar{display:none;}}
+  .stat-card{background:var(--surf);border:1.5px solid var(--bdr2);border-radius:16px;padding:18px;}
+  .stat-val{font-size:30px;font-weight:900;color:var(--accent);line-height:1;}
+  .stat-lbl{font-size:11px;color:var(--muted2);font-weight:600;margin-top:6px;text-transform:uppercase;letter-spacing:.06em;}
+  .stat-icon{font-size:22px;margin-bottom:8px;}
+
+  /* ── Tables ── */
+  .section-title{font-size:16px;font-weight:800;margin-bottom:14px;display:flex;
+    align-items:center;justify-content:space-between;}
+  .table{width:100%;border-collapse:collapse;}
+  .table th{background:var(--bg2);padding:10px 12px;font-size:11px;font-weight:700;
+    color:var(--muted2);text-align:left;text-transform:uppercase;letter-spacing:.06em;
+    border-bottom:1px solid var(--bdr);}
+  .table td{padding:11px 12px;font-size:13px;border-bottom:1px solid var(--bdr);vertical-align:middle;}
+  .table tr:hover td{background:var(--surf2);}
+  .badge{display:inline-block;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700;}
+  .badge-green{background:rgba(22,199,132,.12);color:var(--green);}
+  .badge-red{background:rgba(255,71,87,.12);color:var(--red);}
+  .badge-blue{background:rgba(0,212,255,.1);color:var(--accent);}
+  .badge-gold{background:rgba(255,215,0,.12);color:var(--gold);}
+  .ava{width:32px;height:32px;border-radius:50%;background:var(--accent);display:inline-flex;
+    align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#000;flex-shrink:0;}
+
+  /* ── Question Upload Form ── */
+  .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:600px){.upload-grid{grid-template-columns:1fr;}}
+  .fg{margin-bottom:14px;}
+  .lbl{font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;
+    letter-spacing:.06em;display:block;margin-bottom:6px;}
+  textarea.input{resize:vertical;height:80px;}
+  select.input{cursor:pointer;}
+  .opts-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .opt-label{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;
+    border:1.5px solid var(--bdr2);background:var(--bg2);cursor:pointer;transition:all .15s;}
+  .opt-label:hover{border-color:var(--accent);}
+  .opt-label.correct{border-color:var(--green);background:rgba(22,199,132,.08);}
+  .opt-letter{width:24px;height:24px;border-radius:50%;background:var(--surf2);
+    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;
+    flex-shrink:0;}
+  .success-toast{background:rgba(22,199,132,.12);color:var(--green);border:1px solid rgba(22,199,132,.3);
+    border-radius:10px;padding:12px 16px;font-size:13px;font-weight:600;display:none;margin-bottom:14px;}
+
+  /* ── Progress bar ── */
+  .prog-bar{height:6px;background:var(--bdr);border-radius:3px;overflow:hidden;margin-top:4px;}
+  .prog-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .4s;}
+
+  /* ── Mobile nav ── */
+  .mob-nav{display:none;padding:12px 16px;gap:6px;overflow-x:auto;border-bottom:1px solid var(--bdr);
+    background:var(--bg2);scrollbar-width:none;}
+  .mob-nav-btn{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;
+    background:var(--surf);border:1.5px solid var(--bdr2);color:var(--muted);cursor:pointer;flex-shrink:0;}
+  .mob-nav-btn.on{background:var(--accent);border-color:var(--accent);color:#000;}
+  @media(max-width:700px){.mob-nav{display:flex;}.sidebar{display:none;}}
+
+  .empty{text-align:center;padding:48px;color:var(--muted2);}
+  .empty-icon{font-size:44px;margin-bottom:12px;}
+  .card{background:var(--surf);border:1.5px solid var(--bdr2);border-radius:16px;padding:20px;margin-bottom:16px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════ LOGIN ══════════ -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">Edu<em>Path</em></div>
+    <div class="login-badge">ADMIN PORTAL</div>
+    <div class="login-icon">🔐</div>
+    <div class="login-title">Admin Access</div>
+    <div class="login-sub">Enter your private passcode to access the EduPath admin dashboard</div>
+    <div class="err" id="loginErr"></div>
+    <div class="fg">
+      <input class="input" id="passInput" type="password" placeholder="Enter admin passcode"
+        style="text-align:center;font-size:20px;letter-spacing:6px;font-weight:800"
+        onkeydown="if(event.key==='Enter')checkPass()"/>
+    </div>
+    <button class="btn btn-accent" style="width:100%;margin-top:4px;padding:14px" onclick="checkPass()">
+      Unlock Dashboard →
+    </button>
+  </div>
+</div>
+
+<!-- ══════════ ADMIN APP ══════════ -->
+<div class="admin-app" id="adminApp">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="topbar-logo">Edu<em>Path</em></div>
+      <span class="topbar-badge">ADMIN</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-time" id="topbarTime"></span>
+      <button class="btn btn-ghost" style="padding:7px 14px;font-size:12px" onclick="lockDashboard()">Lock 🔒</button>
+    </div>
+  </div>
+
+  <!-- Mobile nav -->
+  <div class="mob-nav" id="mobNav">
+    <button class="mob-nav-btn on" onclick="showTab('overview',this)">📊 Overview</button>
+    <button class="mob-nav-btn" onclick="showTab('users',this)">👥 Users</button>
+    <button class="mob-nav-btn" onclick="showTab('sessions',this)">📋 Sessions</button>
+    <button class="mob-nav-btn" onclick="showTab('reports',this)">🚩 Reports</button>
+    <button class="mob-nav-btn" onclick="showTab('subjects',this)">📚 Subjects</button>
+    <button class="mob-nav-btn" onclick="showTab('upload',this)">➕ Add Questions</button>
+  </div>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="nav-item on" onclick="showTab('overview',this)"><span class="nav-icon">📊</span> Overview</div>
+      <div class="nav-item" onclick="showTab('users',this)"><span class="nav-icon">👥</span> Users</div>
+      <div class="nav-item" onclick="showTab('sessions',this)"><span class="nav-icon">📋</span> Sessions</div>
+      <div class="nav-item" onclick="showTab('reports',this)"><span class="nav-icon">🚩</span> Reports</div>
+      <div class="nav-item" onclick="showTab('subjects',this)"><span class="nav-icon">📚</span> Subjects</div>
+      <div class="nav-item" onclick="showTab('upload',this)"><span class="nav-icon">➕</span> Add Questions</div>
+    </div>
+
+    <!-- Main content -->
+    <div class="main" id="mainContent"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  ADMIN CONFIG
+// ══════════════════════════════════════
+const PASSCODE = 'EDU-ADMIN-7X9K2W';
+let _unlocked = false;
+let _activeTab = 'overview';
+
+// ══════════════════════════════════════
+//  FIREBASE CONFIG
+// ══════════════════════════════════════
+const FB_CONFIG = {
+  apiKey: "AIzaSyDyduoYZNpLroCub7hgoowfu9xA459jNPY",
+  authDomain: "edupath-10a03.firebaseapp.com",
+  projectId: "edupath-10a03",
+};
+let _db = null;
+let _allUsers = [];
+
+// ══════════════════════════════════════
+//  QUESTION BANK (exam/subject map)
+// ══════════════════════════════════════
+const EXAM_SUBJECTS = {
+  WAEC: ['Mathematics','English','Physics','Chemistry','Biology',
+         'Further Mathematics','Government','Economics','Geography',
+         'Literature','History','Home Economics','Social Studies'],
+  NECO: ['Mathematics','English','Physics','Chemistry','Biology',
+         'History','Home Economics','Social Studies'],
+  JAMB: ['Mathematics','Use of English','Biology','Chemistry',
+         'Physics','Government','Economics','Literature',
+         'Geography','Commerce','Accounting','History','CRK','IRK'],
+  JSS:  ['Mathematics','English','Basic Science','Social Studies',
+         'Civic Education','Basic Technology','French'],
+  PRIMARY: ['Mathematics','English','Basic Science','Social Studies','Verbal Reasoning'],
+};
+
+// ══════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════
+function checkPass() {
+  const val = (document.getElementById('passInput').value || '').trim();
+  const err = document.getElementById('loginErr');
+  if (val === PASSCODE) {
+    _unlocked = true;
+    sessionStorage.setItem('edu_admin', PASSCODE);
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminApp').style.display = 'block';
+    initAdmin();
+  } else {
+    err.textContent = 'Incorrect passcode — try again';
+    err.style.display = 'block';
+    document.getElementById('passInput').value = '';
+    document.getElementById('passInput').focus();
+    setTimeout(() => err.style.display = 'none', 3000);
+  }
+}
+
+function lockDashboard() {
+  _unlocked = false;
+  sessionStorage.removeItem('edu_admin');
+  document.getElementById('adminApp').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('passInput').value = '';
+  _allUsers = [];
+}
+
+// ══════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════
+function initAdmin() {
+  startClock();
+  initFirebase();
+  showTab('overview', document.querySelector('.nav-item.on'));
+}
+
+function startClock() {
+  function tick() {
+    const now = new Date();
+    document.getElementById('topbarTime').textContent =
+      now.toLocaleDateString('en-NG',{weekday:'short',day:'numeric',month:'short'}) + ' · ' +
+      now.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'});
+  }
+  tick();
+  setInterval(tick, 30000);
+}
+
+async function initFirebase() {
+  try {
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const app = initializeApp(FB_CONFIG, 'admin-app');
+    _db = getFirestore(app);
+    await loadUsersFromFirestore(_db, collection, getDocs);
+  } catch(e) {
+    console.warn('Firebase load error:', e);
+    loadUsersFromLocalStorage();
+  }
+}
+
+async function loadUsersFromFirestore(db, collection, getDocs) {
+  try {
+    const snap = await getDocs(collection(db, 'users'));
+    _allUsers = [];
+    snap.forEach(doc => _allUsers.push(doc.data()));
+    renderCurrentTab();
+  } catch(e) {
+    console.warn('Firestore read error:', e);
+    loadUsersFromLocalStorage();
+  }
+}
+
+function loadUsersFromLocalStorage() {
+  // Fallback: read from localStorage (same device only)
+  try {
+    const raw = localStorage.getItem('ep_users');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      _allUsers = parsed.map(u => {
+        let pw = '';
+        try { pw = decodeURIComponent(escape(atob(u.password||''))); } catch { pw = u.password||''; }
+        return {...u, password: pw};
+      });
+    }
+  } catch(e) {}
+  renderCurrentTab();
+}
+
+// ══════════════════════════════════════
+//  TAB NAVIGATION
+// ══════════════════════════════════════
+function showTab(tab, el) {
+  _activeTab = tab;
+  document.querySelectorAll('.nav-item,.mob-nav-btn').forEach(b => b.classList.remove('on'));
+  if (el) el.classList.add('on');
+  // sync sidebar and mobile nav
+  document.querySelectorAll('.nav-item').forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'"+tab+"'")) b.classList.add('on');
+  });
+  document.querySelectorAll('.mob-nav-btn').forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'"+tab+"'")) b.classList.add('on');
+  });
+  renderCurrentTab();
+}
+
+function renderCurrentTab() {
+  const el = document.getElementById('mainContent');
+  if (_activeTab === 'overview')  renderOverview(el);
+  else if (_activeTab === 'users') renderUsers(el);
+  else if (_activeTab === 'sessions') renderSessions(el);
+  else if (_activeTab === 'reports') renderReports(el);
+  else if (_activeTab === 'subjects') renderSubjects(el);
+  else if (_activeTab === 'upload') renderUpload(el);
+}
+
+// ══════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+function calcXP(user) {
+  return (user.sessions||[]).reduce((xp, s) => {
+    return xp + ((s.score||0) * 10) + (s.pct >= 80 ? 5 : s.pct >= 60 ? 2 : 0);
+  }, 0);
+}
+
+function timeSince(dateStr) {
+  if (!dateStr) return 'Never';
+  const diff = Math.floor((Date.now() - new Date(dateStr)) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return diff + ' days ago';
+}
+
+// ══════════════════════════════════════
+//  OVERVIEW
+// ══════════════════════════════════════
+function renderOverview(el) {
+  const total = _allUsers.length;
+  const activeToday = _allUsers.filter(u => (u.sessions||[]).some(s=>s.date===todayStr())).length;
+  const totalSessions = _allUsers.reduce((s,u)=>s+(u.sessions||[]).length,0);
+  const totalQDone = _allUsers.reduce((s,u)=>s+(u.sessions||[]).reduce((q,sess)=>q+(sess.total||0),0),0);
+  const verified = _allUsers.filter(u=>u.emailVerified).length;
+  const totalReports = _allUsers.reduce((s,u)=>s+(u.reports||[]).length,0);
+
+  const stats = [
+    {icon:'👥',val:total,lbl:'Total Users'},
+    {icon:'🟢',val:activeToday,lbl:'Active Today'},
+    {icon:'📝',val:totalSessions,lbl:'Total Sessions'},
+    {icon:'✅',val:totalQDone.toLocaleString(),lbl:'Questions Done'},
+    {icon:'📧',val:verified,lbl:'Verified Accounts'},
+    {icon:'🚩',val:totalReports,lbl:'Flagged Questions'},
+  ];
+
+  // Recent activity
+  const allSessions = [];
+  _allUsers.forEach(u => {
+    (u.sessions||[]).forEach(s => allSessions.push({...s, userName:u.name||'?', avatar:u.avatar||'?'}));
+  });
+  allSessions.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const recent = allSessions.slice(0,5);
+
+  el.innerHTML = `
+    <div class="stats-grid">
+      ${stats.map(s=>`
+        <div class="stat-card">
+          <div class="stat-icon">${s.icon}</div>
+          <div class="stat-val">${s.val}</div>
+          <div class="stat-lbl">${s.lbl}</div>
+        </div>`).join('')}
+    </div>
+
+    <div class="card">
+      <div class="section-title">🕒 Recent Activity</div>
+      ${recent.length ? `
+        <table class="table">
+          <thead><tr><th>User</th><th>Subject</th><th>Score</th><th>Date</th></tr></thead>
+          <tbody>${recent.map(s=>`
+            <tr>
+              <td><div style="display:flex;align-items:center;gap:8px">
+                <div class="ava" style="font-size:10px">${s.avatar}</div>${s.userName}
+              </div></td>
+              <td>${s.subject||s.exam||'?'}</td>
+              <td><span class="badge ${s.pct>=60?'badge-green':'badge-red'}">${s.score||0}/${s.total||0}</span></td>
+              <td style="color:var(--muted2)">${s.date||'?'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>` : '<div class="empty"><div class="empty-icon">📭</div>No sessions yet</div>'}
+    </div>`;
+}
+
+// ══════════════════════════════════════
+//  USERS
+// ══════════════════════════════════════
+function renderUsers(el) {
+  const sorted = [..._allUsers].sort((a,b)=>(b.sessions||[]).length-(a.sessions||[]).length);
+  el.innerHTML = `
+    <div class="section-title">
+      👥 All Users
+      <span class="badge badge-blue">${sorted.length} total</span>
+    </div>
+    ${sorted.length ? `
+      <table class="table">
+        <thead><tr><th>User</th><th>Exam</th><th>Sessions</th><th>XP</th><th>Last Active</th><th>Status</th></tr></thead>
+        <tbody>${sorted.map(u=>{
+          const sessions = (u.sessions||[]);
+          const lastSess = sessions.slice(-1)[0];
+          const xp = calcXP(u);
+          const streak = (u.streak||[]).filter(Boolean).length;
+          return `<tr>
+            <td><div style="display:flex;align-items:center;gap:10px">
+              <div class="ava" style="font-size:11px">${u.avatar||'??'}</div>
+              <div>
+                <div style="font-weight:700">${u.name||'Unknown'}</div>
+                <div style="font-size:11px;color:var(--muted2)">${u.email||''}</div>
+              </div>
+            </div></td>
+            <td><span class="badge badge-blue">${u.ageGroup||u.exam||'?'}</span></td>
+            <td>${sessions.length} <span style="color:var(--muted2);font-size:11px">· 🔥${streak}</span></td>
+            <td style="color:var(--accent);font-weight:700">${xp.toLocaleString()}</td>
+            <td style="color:var(--muted2);font-size:12px">${timeSince(lastSess?.date)}</td>
+            <td><span class="badge ${u.emailVerified?'badge-green':'badge-red'}">${u.emailVerified?'Verified':'Unverified'}</span></td>
+          </tr>`;}).join('')}
+        </tbody>
+      </table>` : '<div class="empty"><div class="empty-icon">👥</div>No users yet</div>'}`;
+}
+
+// ══════════════════════════════════════
+//  SESSIONS
+// ══════════════════════════════════════
+function renderSessions(el) {
+  const all = [];
+  _allUsers.forEach(u => {
+    (u.sessions||[]).forEach(s => all.push({...s, userName:u.name||'?', avatar:u.avatar||'??'}));
+  });
+  all.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const recent = all.slice(0,50);
+  el.innerHTML = `
+    <div class="section-title">
+      📋 Recent Sessions
+      <span class="badge badge-blue">${all.length} total</span>
+    </div>
+    ${recent.length ? `
+      <table class="table">
+        <thead><tr><th>User</th><th>Exam</th><th>Subject</th><th>Score</th><th>Grade</th><th>Date</th></tr></thead>
+        <tbody>${recent.map(s=>`
+          <tr>
+            <td><div style="display:flex;align-items:center;gap:8px">
+              <div class="ava" style="font-size:10px">${s.avatar}</div>${s.userName}
+            </div></td>
+            <td style="font-size:12px;color:var(--muted2)">${s.exam||'?'}</td>
+            <td style="font-weight:600">${s.subject||'?'}</td>
+            <td><span class="badge ${s.pct>=60?'badge-green':'badge-red'}">${s.score||0}/${s.total||0} (${s.pct||0}%)</span></td>
+            <td><span class="badge badge-gold">${s.grade||'?'}</span></td>
+            <td style="color:var(--muted2);font-size:12px">${s.date||'?'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>` : '<div class="empty"><div class="empty-icon">📭</div>No sessions yet</div>'}`;
+}
+
+// ══════════════════════════════════════
+//  REPORTS
+// ══════════════════════════════════════
+function renderReports(el) {
+  const all = [];
+  _allUsers.forEach(u => {
+    (u.reports||[]).forEach(r => all.push({...r, userName:u.name||'?'}));
+  });
+  all.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  el.innerHTML = `
+    <div class="section-title">
+      🚩 Flagged Questions
+      <span class="badge badge-red">${all.length} reports</span>
+    </div>
+    ${all.length ? all.map(r=>`
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <span class="badge badge-red">${r.reason||'Issue reported'}</span>
+          <div style="font-size:11px;color:var(--muted2)">
+            by <strong>${r.userName}</strong> · ID: ${r.qid||'?'} · ${r.ts ? new Date(r.ts).toLocaleDateString('en-NG') : ''}
+          </div>
+        </div>
+        <div style="font-size:14px;line-height:1.6;margin-bottom:8px">${r.qText||''}</div>
+        ${r.note ? `<div style="font-size:12px;color:var(--muted2);font-style:italic;padding:8px 12px;background:var(--bg2);border-radius:8px">"${r.note}"</div>` : ''}
+      </div>`) .join('') : '<div class="empty"><div class="empty-icon">✅</div>No flagged questions</div>'}`;
+}
+
+// ══════════════════════════════════════
+//  SUBJECTS
+// ══════════════════════════════════════
+function renderSubjects(el) {
+  const counts = {};
+  _allUsers.forEach(u => {
+    (u.sessions||[]).forEach(s => {
+      const key = (s.exam||'') + ' — ' + (s.subject||'');
+      counts[key] = (counts[key]||0) + 1;
+    });
+  });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const max = sorted[0]?.[1] || 1;
+  el.innerHTML = `
+    <div class="section-title">📚 Most Practiced Subjects</div>
+    ${sorted.length ? sorted.map(([subj,count])=>`
+      <div class="card" style="padding:14px 18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-weight:700;font-size:14px">${subj}</span>
+          <span style="color:var(--accent);font-weight:800">${count} sessions</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${Math.round(count/max*100)}%"></div></div>
+      </div>`).join('') : '<div class="empty"><div class="empty-icon">📭</div>No data yet</div>'}`;
+}
+
+// ══════════════════════════════════════
+//  QUESTION UPLOAD
+// ══════════════════════════════════════
+let _selectedAnswer = 0;
+
+function renderUpload(el) {
+  const examOptions = Object.keys(EXAM_SUBJECTS).map(e=>`<option value="${e}">${e}</option>`).join('');
+  el.innerHTML = `
+    <div class="section-title">➕ Add New Question</div>
+
+    <div class="card">
+      <div class="upload-grid">
+        <div class="fg">
+          <label class="lbl">Exam</label>
+          <select class="input" id="uExam" onchange="updateSubjects()">${examOptions}</select>
+        </div>
+        <div class="fg">
+          <label class="lbl">Subject</label>
+          <select class="input" id="uSubject"></select>
+        </div>
+        <div class="fg">
+          <label class="lbl">Year</label>
+          <input class="input" id="uYear" type="number" placeholder="${new Date().getFullYear()}" min="1990" max="2030"/>
+        </div>
+        <div class="fg">
+          <label class="lbl">Topic</label>
+          <input class="input" id="uTopic" placeholder="e.g. Algebra, Osmosis"/>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label class="lbl">Question</label>
+        <textarea class="input" id="uQuestion" placeholder="Type the full question here..."></textarea>
+      </div>
+
+      <label class="lbl" style="margin-bottom:10px;display:block">Options — click the correct answer</label>
+      <div class="opts-grid" id="optsGrid">
+        ${['A','B','C','D'].map((l,i)=>`
+          <div class="opt-label ${i===0?'correct':''}" id="optLabel${i}" onclick="selectAnswer(${i})">
+            <div class="opt-letter" id="optLetter${i}" style="${i===0?'background:var(--green);color:#000':''}">${l}</div>
+            <input class="input" id="uOpt${i}" placeholder="Option ${l}"
+              style="border:none;background:transparent;padding:0;flex:1;font-size:13px"
+              onclick="event.stopPropagation()"/>
+          </div>`).join('')}
+      </div>
+
+      <div class="fg" style="margin-top:16px">
+        <label class="lbl">Explanation (optional but recommended)</label>
+        <textarea class="input" id="uExpl" placeholder="Explain why the correct answer is right..."></textarea>
+      </div>
+
+      <div class="err" id="uErr"></div>
+      <div class="success-toast" id="uSuccess"></div>
+
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn btn-accent" style="flex:1;padding:14px" onclick="submitQuestion()">Add Question ✓</button>
+        <button class="btn btn-ghost" style="padding:14px" onclick="clearForm()">Clear</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">📊 Question Bank</div>
+      <div id="qbankStats"></div>
+    </div>`;
+
+  updateSubjects();
+  renderQBankStats();
+}
+
+function selectAnswer(idx) {
+  _selectedAnswer = idx;
+  ['A','B','C','D'].forEach((l,i) => {
+    const label = document.getElementById('optLabel'+i);
+    const letter = document.getElementById('optLetter'+i);
+    if (label) label.className = 'opt-label' + (i===idx?' correct':'');
+    if (letter) {
+      letter.style.background = i===idx ? 'var(--green)' : 'var(--surf2)';
+      letter.style.color = i===idx ? '#000' : '';
+    }
+  });
+}
+
+function updateSubjects() {
+  const exam = document.getElementById('uExam').value;
+  const sel = document.getElementById('uSubject');
+  const subjects = EXAM_SUBJECTS[exam] || [];
+  sel.innerHTML = subjects.map(s=>`<option value="${s}">${s}</option>`).join('');
+}
+
+function submitQuestion() {
+  const exam    = document.getElementById('uExam').value;
+  const subject = document.getElementById('uSubject').value;
+  const year    = parseInt(document.getElementById('uYear').value) || new Date().getFullYear();
+  const topic   = document.getElementById('uTopic').value.trim();
+  const q       = document.getElementById('uQuestion').value.trim();
+  const opts    = [0,1,2,3].map(i => document.getElementById('uOpt'+i).value.trim());
+  const expl    = document.getElementById('uExpl').value.trim();
+  const errEl   = document.getElementById('uErr');
+  const okEl    = document.getElementById('uSuccess');
+
+  const showErr = (msg) => { errEl.textContent=msg; errEl.style.display='block'; okEl.style.display='none'; };
+  errEl.style.display = 'none';
+
+  if (!q)              { showErr('Question text is required.'); return; }
+  if (opts.some(o=>!o)){ showErr('All 4 options are required.'); return; }
+
+  const uid = exam.toLowerCase().slice(0,3) + subject.replace(/[^a-zA-Z]/g,'').toLowerCase().slice(0,4)
+    + '_adm_' + Date.now().toString(36);
+
+  const newQ = { id:uid, year, topic, q, opts, ans:_selectedAnswer, expl };
+
+  // Save to localStorage under admin_questions
+  try {
+    const existing = JSON.parse(localStorage.getItem('ep_admin_questions')||'[]');
+    existing.push({ exam, subject, ...newQ });
+    localStorage.setItem('ep_admin_questions', JSON.stringify(existing));
+
+    okEl.textContent = `✅ Question added! (${exam} — ${subject}) ID: ${uid}`;
+    okEl.style.display = 'block';
+    setTimeout(() => okEl.style.display='none', 4000);
+    clearForm();
+    renderQBankStats();
+  } catch(e) {
+    showErr('Failed to save: ' + e.message);
+  }
+}
+
+function clearForm() {
+  ['uYear','uTopic','uQuestion','uExpl'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value='';
+  });
+  [0,1,2,3].forEach(i => {
+    const el = document.getElementById('uOpt'+i); if(el) el.value='';
+  });
+  selectAnswer(0);
+  document.getElementById('uErr').style.display='none';
+}
+
+function renderQBankStats() {
+  const el = document.getElementById('qbankStats');
+  if (!el) return;
+  const adminQs = JSON.parse(localStorage.getItem('ep_admin_questions')||'[]');
+  const builtIn = {
+    'WAEC':{ Mathematics:120,English:120,Physics:120,Chemistry:120,Biology:120,
+             'Further Mathematics':100,Government:120,Economics:120,Geography:120,Literature:100,
+             History:100,'Home Economics':100,'Social Studies':80 },
+    'NECO':{ Mathematics:120,English:70,Physics:80,Chemistry:120,Biology:80 },
+    'JAMB':{ Mathematics:120,'Use of English':260,Biology:120,Chemistry:120,
+             Physics:120,Government:120,Economics:120,Literature:100,CRK:120,IRK:120 },
+  };
+  let totalBuiltIn = 0;
+  Object.values(builtIn).forEach(subjs => Object.values(subjs).forEach(n => totalBuiltIn += n));
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+      <div style="text-align:center">
+        <div style="font-size:26px;font-weight:900;color:var(--accent)">${(totalBuiltIn+adminQs.length).toLocaleString()}</div>
+        <div style="font-size:11px;color:var(--muted2);text-transform:uppercase;font-weight:700">Total Questions</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:26px;font-weight:900;color:var(--green)">${totalBuiltIn.toLocaleString()}</div>
+        <div style="font-size:11px;color:var(--muted2);text-transform:uppercase;font-weight:700">Built-in</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:26px;font-weight:900;color:var(--gold)">${adminQs.length}</div>
+        <div style="font-size:11px;color:var(--muted2);text-transform:uppercase;font-weight:700">Added by You</div>
+      </div>
+    </div>
+    ${adminQs.length ? `
+      <div style="font-size:12px;font-weight:700;color:var(--muted2);margin-bottom:8px;text-transform:uppercase">Your Added Questions</div>
+      ${adminQs.slice(-10).reverse().map(q=>`
+        <div style="padding:10px 14px;background:var(--bg2);border-radius:10px;margin-bottom:8px;border-left:3px solid var(--accent)">
+          <div style="font-size:12px;color:var(--muted2);margin-bottom:4px">${q.exam} — ${q.subject} · ${q.year||''}</div>
+          <div style="font-size:13px">${q.q}</div>
+        </div>`).join('')}` : '<div style="color:var(--muted2);font-size:13px;text-align:center;padding:20px">No custom questions added yet</div>'}`;
+}
+
+// ══════════════════════════════════════
+//  STARTUP
+// ══════════════════════════════════════
+window.addEventListener('load', () => {
+  // Check URL key
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('key') === 'wahab2024') {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminApp').style.display = 'block';
+    _unlocked = true;
+    initAdmin();
+    return;
+  }
+  // Check session
+  if (sessionStorage.getItem('edu_admin') === PASSCODE) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminApp').style.display = 'block';
+    _unlocked = true;
+    initAdmin();
+    return;
+  }
+  // Show login
+  setTimeout(() => document.getElementById('passInput').focus(), 200);
+});
+</script>
+</body>
+</html>
