@@ -1,6 +1,6 @@
-// EduPath Service Worker v13.0
-const CACHE_NAME = 'edupath-v13.0';
-const FONT_CACHE = 'edupath-fonts-v1';
+// EduPath Service Worker v36.0 — March 2026
+const CACHE_NAME = 'edupath-march2026-v36';
+const FONT_CACHE = 'edupath-fonts-v2';
 
 const APP_SHELL = [
   './index.html',
@@ -9,7 +9,6 @@ const APP_SHELL = [
   './icon-512.png',
 ];
 
-// Domains to NEVER intercept — let them go straight to network
 const BYPASS_DOMAINS = [
   'identitytoolkit.googleapis.com',
   'securetoken.googleapis.com',
@@ -22,7 +21,6 @@ const BYPASS_DOMAINS = [
   'standard.paystack.co',
 ];
 
-// ── Install ──
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache =>
@@ -32,44 +30,32 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// ── Activate ──
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
-        keys
-          .filter(k => k !== CACHE_NAME && k !== FONT_CACHE)
-          .map(k => caches.delete(k))
+        keys.filter(k => k !== CACHE_NAME && k !== FONT_CACHE).map(k => {
+          console.log('[SW] Deleting old cache:', k);
+          return caches.delete(k);
+        })
       )
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// ── Fetch ──
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Never intercept Firebase, Brevo, Paystack or gstatic requests
-  if (BYPASS_DOMAINS.some(d => url.hostname.includes(d))) {
-    return; // let browser handle it normally
-  }
+  if (BYPASS_DOMAINS.some(d => url.hostname.includes(d))) return;
+  if (event.request.method !== 'GET') return;
 
-  // Never intercept non-GET requests
-  if (event.request.method !== 'GET') {
-    return;
-  }
-
-  // Google Fonts — cache first
   if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
     event.respondWith(
       caches.open(FONT_CACHE).then(cache =>
         cache.match(event.request).then(cached => {
           if (cached) return cached;
           return fetch(event.request).then(response => {
-            if (response && response.status === 200) {
-              cache.put(event.request, response.clone());
-            }
+            if (response && response.status === 200) cache.put(event.request, response.clone());
             return response;
           }).catch(() => cached);
         })
@@ -78,13 +64,15 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // App shell — network first (get latest), cache fallback
-  if (url.pathname.endsWith('.html') || url.pathname.endsWith('.json') || url.pathname.endsWith('.png')) {
+  // Always fetch HTML fresh from network — never serve stale index.html
+  if (url.pathname.endsWith('.html') || url.pathname.endsWith('.json') ||
+      url.pathname === '/' || url.pathname.endsWith('/Edupathh') ||
+      url.pathname.endsWith('/Edupathh/') || url.pathname.endsWith('/EduPath') ||
+      url.pathname.endsWith('/EduPath/')) {
     event.respondWith(
-      fetch(event.request).then(response => {
+      fetch(event.request, { cache: 'no-store' }).then(response => {
         if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, response.clone()));
         }
         return response;
       }).catch(() => caches.match(event.request))
@@ -92,18 +80,23 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Everything else — network with cache fallback
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
-  );
-});
-
-// ── Messages ──
-self.addEventListener('message', event => {
-  if (event.data === 'skipWaiting') {
-    self.skipWaiting();
+  if (url.pathname.endsWith('.png') || url.pathname.endsWith('.svg')) {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        if (response && response.status === 200) {
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, response.clone()));
+        }
+        return response;
+      }).catch(() => caches.match(event.request))
+    );
     return;
   }
+
+  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+});
+
+self.addEventListener('message', event => {
+  if (event.data === 'skipWaiting') { self.skipWaiting(); return; }
   if (event.data && event.data.type === 'SCHEDULE_REMINDER') {
     const { title, body, delayMs, tag } = event.data;
     setTimeout(() => {
@@ -114,10 +107,7 @@ self.addEventListener('message', event => {
         tag: tag || 'edupath-reminder',
         renotify: true,
         data: { url: './' },
-        actions: [
-          { action: 'study', title: 'Study Now' },
-          { action: 'snooze', title: 'Snooze 1hr' }
-        ]
+        actions: [{ action: 'study', title: 'Study Now' }, { action: 'snooze', title: 'Snooze 1hr' }]
       });
     }, delayMs || 0);
   }
@@ -131,7 +121,6 @@ self.addEventListener('message', event => {
   }
 });
 
-// ── Notification click ──
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   if (event.action === 'snooze') {
@@ -148,15 +137,12 @@ self.addEventListener('notificationclick', event => {
   }
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
-      for (const client of clients) {
-        if ('focus' in client) return client.focus();
-      }
+      for (const client of clients) { if ('focus' in client) return client.focus(); }
       if (self.clients.openWindow) return self.clients.openWindow('./');
     })
   );
 });
 
-// ── Push ──
 self.addEventListener('push', event => {
   let data = { title: 'EduPath', body: 'Time to study!' };
   try { data = event.data ? event.data.json() : data; } catch(e) {}
